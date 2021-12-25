@@ -2,4 +2,5 @@
 
 ### **Welcome!**
 
-This is a course made by buildspace
+This is a course from buildspace
+"Build a Web3 App with Solidity + Ethereum Smart Contracts"
