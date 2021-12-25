@@ -1,12 +1,73 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
-import "./App.css";
 import abi from "./utils/WavePortal.json";
+import styled from "styled-components";
+
+const Container = styled.div`
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const TitleContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+const WalletContainer = styled.div`
+  padding: 2rem 0rem;
+`;
+
+const Title = styled.h1`
+  font-size: 4rem;
+`;
+
+const Content = styled.span`
+  font-size: 2rem;
+  width: 60%;
+  text-align: center;
+`;
+
+const MessageContainer = styled.div`
+  border: 1px solid;
+  border-radius: 20px;
+  margin-top: 16px;
+  padding: 1rem;
+`;
+
+const MessageHeaderContainer = styled.div`
+  display: flex;
+  padding-bottom: 1rem;
+`;
+
+const AddressText = styled.span`
+  font-size: 0.8rem;
+  padding-right: 3rem;
+`;
+
+const TimeText = styled.span`
+  font-size: 0.8rem;
+`;
+
+const Input = styled.input`
+  width: 40%;
+  margin-bottom: 10px;
+`;
+
+const Button = styled.button`
+  background: #fff;
+  border: 1px solid;
+  border-radius: 20px;
+`;
 
 export default function App() {
   const [currentAccount, setCurrentAccount] = useState("");
   const [numberWaves, setNumberWaves] = useState(0);
-  const contractAddress = "0x42e4d5f1110Fb57e69a6140a3FB4eBe1EF756d92";
+  const [allWaves, setAllWaves] = useState([]);
+  const [message, setMessage] = useState("");
+  const contractAddress = "0x828f7e3F385cbAE2060B7B843A110D3163dd73Ee";
   const contractABI = abi.abi;
 
   const checkIfWalletIsConnected = async () => {
@@ -68,6 +129,17 @@ export default function App() {
 
         let count = await wavePortalContract.getTotalWaves();
         setNumberWaves(count.toNumber());
+
+        const waves = await wavePortalContract.getAllWaves();
+        let wavesCleaned = [];
+        waves.forEach((wave) => {
+          wavesCleaned.push({
+            address: wave.waver,
+            timestamp: new Date(wave.timestamp * 1000),
+            message: wave.message,
+          });
+        });
+        setAllWaves(wavesCleaned);
       } else {
         console.log("Ethereum object doesn't exist!");
       }
@@ -91,7 +163,7 @@ export default function App() {
         let count = await wavePortalContract.getTotalWaves();
         console.log("Retrieved total wave count...", count.toNumber());
 
-        const waveTxn = await wavePortalContract.wave();
+        const waveTxn = await wavePortalContract.wave(message);
         console.log("Mining...", waveTxn.hash);
 
         await waveTxn.wait();
@@ -113,25 +185,63 @@ export default function App() {
   }, []);
 
   return (
-    <div className="mainContainer">
-      <div className="dataContainer">
-        <div className="header">👋 Hey there!</div>
-        <div>Total Waves: {numberWaves}</div>
-
-        <div className="bio">Connect your Ethereum wallet and wave at me!</div>
-
-        <button className="waveButton" onClick={wave}>
-          Wave at Me
-        </button>
-
+    <Container>
+      <TitleContainer>
+        <Title>Welcome to 👋 dApp</Title>
+        <Content>
+          Connect your wallet and wave at me! You have 50% chance to win 0.0001
+          ether
+        </Content>
+      </TitleContainer>
+      <WalletContainer>
         {!currentAccount ? (
           <button className="waveButton" onClick={connectWallet}>
             Connect Wallet
           </button>
         ) : (
-          <div>{currentAccount}</div>
+          <div>
+            Connected: {currentAccount.slice(0, 5)}...{currentAccount.slice(-4)}
+          </div>
         )}
-      </div>
-    </div>
+      </WalletContainer>
+      <Input
+        placeholder="Input you message here..."
+        type="text"
+        value={message}
+        onChange={(e) => {
+          setMessage(e.target.value);
+        }}
+      />
+      <Button className="waveButton" onClick={wave}>
+        Wave at me
+      </Button>
+
+      {allWaves.map((wave, index) => {
+        var dateString =
+          ("0" + (wave.timestamp.getUTCMonth() + 1)).slice(-2) +
+          "/" +
+          ("0" + wave.timestamp.getUTCDate()).slice(-2) +
+          "/" +
+          wave.timestamp.getUTCFullYear() +
+          " " +
+          ("0" + wave.timestamp.getUTCHours()).slice(-2) +
+          ":" +
+          ("0" + wave.timestamp.getUTCMinutes()).slice(-2) +
+          ":" +
+          ("0" + wave.timestamp.getUTCSeconds()).slice(-2);
+        return (
+          <MessageContainer key={index}>
+            <MessageHeaderContainer>
+              <AddressText>
+                {wave.address.slice(0, 5)}...{wave.address.slice(-4)} says:
+              </AddressText>
+              <TimeText>{dateString}</TimeText>
+            </MessageHeaderContainer>
+
+            <div>Message: {wave.message}</div>
+          </MessageContainer>
+        );
+      })}
+    </Container>
   );
 }
